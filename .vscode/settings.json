@@ -1,4 +1,8 @@
 {
   "editor.formatOnSave": true,
-  "cSpell.words": ["fastify", "libsql", "typebox"]
+  "cSpell.words": ["fastify", "libsql", "tles", "typebox"],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always",
+    "source.organizeImports": "always"
+  }
 }
