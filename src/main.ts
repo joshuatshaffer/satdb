@@ -19,6 +19,8 @@ fastify.get("/health/db", async (request, reply) => {
 });
 
 fastify.get("/tle", async (request, reply) => {
+  // TODO: Format TLE on demand. https://github.com/thkruz/ootk-core/blob/main/src/coordinate/FormatTle.ts
+
   const tles = await db.select().from(schema.tles);
   return tles.flatMap((tle) => [tle.name, tle.line1, tle.line2]).join("\n");
 });
