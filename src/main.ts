@@ -1,11 +1,14 @@
 import Fastify from "fastify";
 
+const tleSource =
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
+
 const fastify = Fastify({
   logger: true,
 });
 
-fastify.get("/", async (request, reply) => {
-  return { hello: "world" };
+fastify.get("/tle", async (request, reply) => {
+  return fetch(tleSource);
 });
 
 async function start() {
