@@ -1,6 +1,6 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const Tles = sqliteTable("tle", {
+export const Tle = sqliteTable("tle", {
   noradCatId: integer().primaryKey(),
   name: text(),
   line1: text().notNull(),
