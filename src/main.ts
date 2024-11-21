@@ -1,16 +1,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { eq, InferInsertModel } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import Fastify from "fastify";
 import { Tle } from "ootk-core";
-import { CelesTrakJson } from "./CelesTrakJson";
 import { db } from "./db/db";
 import * as schema from "./db/schema";
 
 const tleSource =
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
-const satelliteJsonSource =
-  "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json";
 
 const fastify = Fastify({
   logger: true,
@@ -74,55 +71,11 @@ fastify.get("/tle/refresh", async (request, reply) => {
   }
 });
 
-function celesTrakJsonToSatellite(
-  sat: CelesTrakJson
-): InferInsertModel<typeof schema.Satellites> {
-  return {
-    objectName: sat.OBJECT_NAME,
-    objectId: sat.OBJECT_ID,
-    epoch: sat.EPOCH,
-    meanMotion: sat.MEAN_MOTION,
-    eccentricity: sat.ECCENTRICITY,
-    inclination: sat.INCLINATION,
-    raOfAscNode: sat.RA_OF_ASC_NODE,
-    argOfPericenter: sat.ARG_OF_PERICENTER,
-    meanAnomaly: sat.MEAN_ANOMALY,
-    ephemerisType: sat.EPHEMERIS_TYPE,
-    classificationType: sat.CLASSIFICATION_TYPE,
-    noradCatId: sat.NORAD_CAT_ID,
-    elementSetNo: sat.ELEMENT_SET_NO,
-    revAtEpoch: sat.REV_AT_EPOCH,
-    bstar: sat.BSTAR,
-    meanMotionDot: sat.MEAN_MOTION_DOT,
-    meanMotionDDot: sat.MEAN_MOTION_DDOT,
-  };
-}
-
 function* batch<T>(arr: readonly T[], batchSize: number) {
   for (let i = 0; i < arr.length; i += batchSize) {
     yield arr.slice(i, i + batchSize);
   }
 }
-
-fastify.get("/satellites/refresh", async (request, reply) => {
-  const response = await fetch(satelliteJsonSource);
-  const json: CelesTrakJson[] = await response.json();
-  const satellites = json.map(celesTrakJsonToSatellite);
-
-  fastify.log.info(`Downloaded and parsed ${satellites.length} satellites`);
-
-  await db.delete(schema.Satellites);
-  for (const satelliteBatch of batch(satellites, 400)) {
-    fastify.log.info(`Inserting ${satelliteBatch.length} satellites`);
-    await db.insert(schema.Satellites).values(satelliteBatch);
-  }
-
-  return { numberSatellites: satellites.length };
-});
-
-fastify.get("/satellites", async (request, reply) => {
-  return await db.select().from(schema.Satellites).limit(10);
-});
 
 fastify.get(
   "/satellites/norad-cat-id/:noradCatId/tle",
