@@ -1,4 +1,6 @@
-import { InferInsertModel } from "drizzle-orm";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
+import { eq, InferInsertModel } from "drizzle-orm";
 import Fastify from "fastify";
 import { Tle } from "ootk-core";
 import { CelesTrakJson } from "./CelesTrakJson";
@@ -12,7 +14,7 @@ const satelliteJsonSource =
 
 const fastify = Fastify({
   logger: true,
-});
+}).withTypeProvider<TypeBoxTypeProvider>();
 
 fastify.get("/health/db", async (request, reply) => {
   const result = await db.run("select 1");
@@ -58,7 +60,7 @@ fastify.get("/tle/refresh", async (request, reply) => {
 
   const tles = Array.from(splitTle(text), ({ objectName, line1, line2 }) => ({
     noradCatId: Tle.satNum(line1 as any),
-    name: objectName,
+    name: objectName?.trim(),
     line1,
     line2,
   }));
@@ -121,6 +123,30 @@ fastify.get("/satellites/refresh", async (request, reply) => {
 fastify.get("/satellites", async (request, reply) => {
   return await db.select().from(schema.Satellites).limit(10);
 });
+
+fastify.get(
+  "/satellites/norad-cat-id/:noradCatId/tle",
+  {
+    schema: {
+      params: Type.Object({
+        noradCatId: Type.Integer(),
+      }),
+    },
+  },
+  async (request, reply) => {
+    const [tle] = await db
+      .select()
+      .from(schema.Tles)
+      .where(eq(schema.Tles.noradCatId, request.params.noradCatId));
+
+    if (!tle) {
+      reply.status(404);
+      return { error: "No TLE found for this satellite" };
+    }
+
+    return [tle.name, tle.line1, tle.line2].join("\n") + "\n";
+  }
+);
 
 async function start() {
   try {

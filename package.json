@@ -6,6 +6,7 @@
   "dependencies": {
     "@fastify/swagger": "9.3.0",
     "@fastify/swagger-ui": "5.1.0",
+    "@fastify/type-provider-typebox": "5.0.1",
     "@libsql/client": "0.14.0",
     "@sinclair/typebox": "0.34.4",
     "drizzle-orm": "0.36.3",

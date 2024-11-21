@@ -11,6 +11,9 @@ dependencies:
   '@fastify/swagger-ui':
     specifier: 5.1.0
     version: 5.1.0
+  '@fastify/type-provider-typebox':
+    specifier: 5.0.1
+    version: 5.0.1(@sinclair/typebox@0.34.4)
   '@libsql/client':
     specifier: 0.14.0
     version: 0.14.0
@@ -753,6 +756,14 @@ packages:
       yaml: 2.6.1
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /@fastify/type-provider-typebox@5.0.1(@sinclair/typebox@0.34.4):
+    resolution: {integrity: sha512-zepdCWmgvpcLS06DN5vznMJLUP/5gLt/X3lVXZvddXmHSImQxm2Em+dV64b6x9P4G4V9DKuS4EL08ASjpCboNA==}
+    peerDependencies:
+      '@sinclair/typebox': '>=0.26 <=0.33'
+    dependencies:
+      '@sinclair/typebox': 0.34.4
     dev: false
 
   /@isaacs/cliui@8.0.2:
