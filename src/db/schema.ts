@@ -1,9 +1,10 @@
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const tles = sqliteTable("tle", {
+export const Tles = sqliteTable("tle", {
+  noradCatId: integer().primaryKey(),
   name: text(),
-  line1: text(),
-  line2: text(),
+  line1: text().notNull(),
+  line2: text().notNull(),
 });
 
 export const Satellites = sqliteTable("satellites", {

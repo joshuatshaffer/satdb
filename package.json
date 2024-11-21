@@ -9,7 +9,8 @@
     "@libsql/client": "0.14.0",
     "@sinclair/typebox": "0.34.4",
     "drizzle-orm": "0.36.3",
-    "fastify": "5.1.0"
+    "fastify": "5.1.0",
+    "ootk-core": "1.2.5"
   },
   "devDependencies": {
     "drizzle-kit": "0.28.1",

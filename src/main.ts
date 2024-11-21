@@ -1,5 +1,6 @@
 import { InferInsertModel } from "drizzle-orm";
 import Fastify from "fastify";
+import { Tle } from "ootk-core";
 import { CelesTrakJson } from "./CelesTrakJson";
 import { db } from "./db/db";
 import * as schema from "./db/schema";
@@ -19,27 +20,56 @@ fastify.get("/health/db", async (request, reply) => {
 });
 
 fastify.get("/tle", async (request, reply) => {
-  // TODO: Format TLE on demand. https://github.com/thkruz/ootk-core/blob/main/src/coordinate/FormatTle.ts
-
-  const tles = await db.select().from(schema.tles);
+  const tles = await db.select().from(schema.Tles);
   return tles.flatMap((tle) => [tle.name, tle.line1, tle.line2]).join("\n");
 });
+
+function* splitTle(raw: string) {
+  const lines = raw.split("\n");
+  let state: { objectName?: string; line1?: string } = {};
+
+  for (const line of lines) {
+    if (line.startsWith("1 ")) {
+      state = {
+        objectName: state.objectName,
+        line1: line,
+      };
+    } else if (line.startsWith("2 ")) {
+      if (state.line1) {
+        yield {
+          objectName: state.objectName,
+          line1: state.line1,
+          line2: line,
+        };
+      }
+
+      state = {};
+    } else {
+      state = {
+        objectName: line,
+      };
+    }
+  }
+}
 
 fastify.get("/tle/refresh", async (request, reply) => {
   const response = await fetch(tleSource);
   const text = await response.text();
-  const lines = text.split("\n");
-  const tles = [];
-  for (let i = 0; i < lines.length; i += 3) {
-    tles.push({
-      name: lines[i],
-      line1: lines[i + 1],
-      line2: lines[i + 2],
-    });
-  }
 
-  await db.delete(schema.tles);
-  await db.insert(schema.tles).values(tles);
+  const tles = Array.from(splitTle(text), ({ objectName, line1, line2 }) => ({
+    noradCatId: Tle.satNum(line1 as any),
+    name: objectName,
+    line1,
+    line2,
+  }));
+
+  fastify.log.info(`Downloaded and parsed ${tles.length} satellites`);
+
+  await db.delete(schema.Tles);
+  for (const values of batch(tles, 400)) {
+    fastify.log.info(`Inserting ${values.length} satellites`);
+    await db.insert(schema.Tles).values(values);
+  }
 });
 
 function celesTrakJsonToSatellite(
