@@ -1,11 +1,14 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
-import { eq } from "drizzle-orm";
+import { TSchema, Type } from "@sinclair/typebox";
+import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
 import { batch } from "./batch";
 import { db } from "./db/db";
 import { Tle } from "./db/schema";
 import { parseTleList } from "./parseTleList";
+
+const Nullable = <T extends TSchema>(schema: T) =>
+  Type.Union([schema, Type.Null()]);
 
 const tleSource =
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
@@ -38,6 +41,58 @@ fastify.get("/tle/refresh", async (request, reply) => {
     await db.insert(Tle).values(values);
   }
 });
+
+fastify.get(
+  "/satellites",
+  {
+    schema: {
+      querystring: Type.Object({
+        limit: Type.Optional(Type.Integer({ minimum: 1 })),
+        after: Type.Optional(Type.Integer()),
+      }),
+      response: {
+        200: Type.Object({
+          items: Type.Array(
+            Type.Object({
+              noradCatId: Type.Integer(),
+              tleName: Nullable(Type.String()),
+            })
+          ),
+          totalItems: Type.Integer({ minimum: 0 }),
+          next: Nullable(Type.String({ format: "uri-reference" })),
+        }),
+      },
+    },
+  },
+  async (request, reply) => {
+    const { limit = 100, after } = request.query;
+
+    const satellites = await db
+      .select()
+      .from(Tle)
+      .where(and(after !== undefined ? gt(Tle.noradCatId, after) : undefined))
+      .limit(limit);
+
+    const [{ totalItems }] = await db.select({ totalItems: count() }).from(Tle);
+
+    return {
+      items: satellites.map((satellite) => ({
+        noradCatId: satellite.noradCatId,
+        tleName: satellite.name,
+      })),
+
+      totalItems,
+      next:
+        satellites.length >= limit
+          ? `/satellites?` +
+            new URLSearchParams({
+              limit: limit.toString(),
+              after: satellites[limit - 1].noradCatId.toString(),
+            })
+          : null,
+    };
+  }
+);
 
 fastify.get(
   "/satellites/norad-cat-id/:noradCatId/tle",
