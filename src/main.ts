@@ -17,6 +17,26 @@ const fastify = Fastify({
   logger: true,
 }).withTypeProvider<TypeBoxTypeProvider>();
 
+const hiddenTag = "hidden";
+
+await fastify.register(import("@fastify/swagger"), {
+  openapi: {
+    // https://spec.openapis.org/oas/v3.1.0.html
+    openapi: "3.1.0",
+    info: { title: "Sat DB", version: "0.0.0" },
+  },
+
+  hiddenTag,
+});
+
+await fastify.register(import("@fastify/swagger-ui"), {
+  routePrefix: "/docs",
+});
+
+fastify.get("/", { schema: { tags: [hiddenTag] } }, (request, reply) => {
+  reply.redirect("/docs");
+});
+
 fastify.get("/health/db", async (request, reply) => {
   const result = await db.run("select 1");
   return { status: "ok", result };
