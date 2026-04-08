@@ -78,7 +78,7 @@ fastify.get(
   {
     schema: {
       querystring: Type.Object({
-        limit: Type.Optional(Type.Integer({ minimum: 1 })),
+        limit: Type.Integer({ minimum: 1, default: 100 }),
         after: Type.Optional(Type.Integer()),
       }),
       response: {
@@ -96,7 +96,7 @@ fastify.get(
     },
   },
   async (request, reply) => {
-    const { limit = 100, after } = request.query;
+    const { limit, after } = request.query;
 
     const satellites = await db
       .select()
