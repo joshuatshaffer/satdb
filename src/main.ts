@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
 import { TSchema, Type } from "typebox";
+import { ErrorResponse } from "./api/schemas";
 import { batch } from "./batch";
 import { db } from "./db/db";
 import { Tle } from "./db/schema";
@@ -42,10 +43,20 @@ fastify.get("/health/db", async (request, reply) => {
   return { status: "ok", result };
 });
 
-fastify.get("/tle", async (request, reply) => {
-  const tles = await db.select().from(Tle);
-  return tles.flatMap((tle) => [tle.name, tle.line1, tle.line2]).join("\n");
-});
+fastify.get(
+  "/tle",
+  {
+    schema: {
+      response: {
+        200: { content: { "text/plain": { schema: Type.String() } } },
+      },
+    },
+  },
+  async (request, reply) => {
+    const tles = await db.select().from(Tle);
+    return tles.flatMap((tle) => [tle.name, tle.line1, tle.line2]).join("\n");
+  },
+);
 
 fastify.get("/tle/refresh", async (request, reply) => {
   const response = await fetch(tleSource);
@@ -121,6 +132,10 @@ fastify.get(
       params: Type.Object({
         noradCatId: Type.Integer(),
       }),
+      response: {
+        200: { content: { "text/plain": { schema: Type.String() } } },
+        default: ErrorResponse,
+      },
     },
   },
   async (request, reply) => {
@@ -130,8 +145,10 @@ fastify.get(
       .where(eq(Tle.noradCatId, request.params.noradCatId));
 
     if (!tle) {
-      reply.status(404);
-      return { error: "No TLE found for this satellite" };
+      reply
+        .status(404)
+        .send({ errors: [{ message: "No TLE found for this satellite" }] });
+      return;
     }
 
     return [tle.name, tle.line1, tle.line2].join("\n") + "\n";
