@@ -1,7 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { TSchema, Type } from "@sinclair/typebox";
 import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
+import { TSchema, Type } from "typebox";
 import { batch } from "./batch";
 import { db } from "./db/db";
 import { Tle } from "./db/schema";
@@ -56,7 +56,7 @@ fastify.get(
             Type.Object({
               noradCatId: Type.Integer(),
               tleName: Nullable(Type.String()),
-            })
+            }),
           ),
           totalItems: Type.Integer({ minimum: 0 }),
           next: Nullable(Type.String({ format: "uri-reference" })),
@@ -91,7 +91,7 @@ fastify.get(
             })
           : null,
     };
-  }
+  },
 );
 
 fastify.get(
@@ -115,7 +115,7 @@ fastify.get(
     }
 
     return [tle.name, tle.line1, tle.line2].join("\n") + "\n";
-  }
+  },
 );
 
 async function start() {
