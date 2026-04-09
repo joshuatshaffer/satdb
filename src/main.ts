@@ -1,19 +1,19 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
-import { TSchema, Type } from "typebox";
+import { Static, TSchema, Type } from "typebox";
 import { ErrorResponse } from "./api/schemas";
 import { batch } from "./batch";
 import { db } from "./db/db";
-import { Tle } from "./db/schema";
+import { Omm, OmmSchema } from "./db/schema";
 import { logger } from "./logger";
-import { parseTleList } from "./parseTleList";
+import { ommToTle } from "./ommToTle";
 
 const Nullable = <T extends TSchema>(schema: T) =>
   Type.Union([schema, Type.Null()]);
 
 const tleSource =
-  "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
+  "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
 
 const fastify = Fastify({
   loggerInstance: logger,
@@ -54,23 +54,28 @@ fastify.get(
     },
   },
   async (request, reply) => {
-    const tles = await db.select().from(Tle);
-    return tles.flatMap((tle) => [tle.name, tle.line1, tle.line2]).join("\n");
+    const omms = await db.select().from(Omm);
+    return (
+      omms
+        .flatMap((omm) => {
+          const tle = ommToTle(omm as any);
+          return [tle.name, tle.line1, tle.line2];
+        })
+        .join("\n") + "\n"
+    );
   },
 );
 
 fastify.get("/tle/refresh", async (request, reply) => {
   const response = await fetch(tleSource);
-  const text = await response.text();
+  const omms: Static<typeof OmmSchema>[] = await response.json();
 
-  const tles = parseTleList(text);
+  logger.info(`Downloaded and parsed ${omms.length} satellites`);
 
-  logger.info(`Downloaded and parsed ${tles.length} satellites`);
-
-  await db.delete(Tle);
-  for (const values of batch(tles, 400)) {
+  await db.delete(Omm);
+  for (const values of batch(omms, 400)) {
     logger.info(`Inserting ${values.length} satellites`);
-    await db.insert(Tle).values(values);
+    await db.insert(Omm).values(values);
   }
 });
 
@@ -84,12 +89,7 @@ fastify.get(
       }),
       response: {
         200: Type.Object({
-          items: Type.Array(
-            Type.Object({
-              noradCatId: Type.Integer(),
-              tleName: Nullable(Type.String()),
-            }),
-          ),
+          items: Type.Array(OmmSchema),
           totalItems: Type.Integer({ minimum: 0 }),
           next: Nullable(Type.String({ format: "uri-reference" })),
         }),
@@ -101,17 +101,25 @@ fastify.get(
 
     const satellites = await db
       .select()
-      .from(Tle)
-      .where(and(after !== undefined ? gt(Tle.noradCatId, after) : undefined))
+      .from(Omm)
+      .where(and(after !== undefined ? gt(Omm.NORAD_CAT_ID, after) : undefined))
       .limit(limit);
 
-    const [{ totalItems }] = await db.select({ totalItems: count() }).from(Tle);
+    const [{ totalItems }] = await db.select({ totalItems: count() }).from(Omm);
 
     return {
-      items: satellites.map((satellite) => ({
-        noradCatId: satellite.noradCatId,
-        tleName: satellite.name,
-      })),
+      items: satellites.map(
+        (omm): Static<typeof OmmSchema> => ({
+          ...omm,
+          EPHEMERIS_TYPE:
+            omm.EPHEMERIS_TYPE === null ? undefined : (omm.EPHEMERIS_TYPE as 0),
+          CLASSIFICATION_TYPE:
+            omm.CLASSIFICATION_TYPE === null
+              ? undefined
+              : (omm.CLASSIFICATION_TYPE as "U" | "C"),
+          REV_AT_EPOCH: omm.REV_AT_EPOCH ?? undefined,
+        }),
+      ),
 
       totalItems,
       next:
@@ -119,7 +127,7 @@ fastify.get(
           ? `/satellites?` +
             new URLSearchParams({
               limit: limit.toString(),
-              after: satellites[limit - 1].noradCatId.toString(),
+              after: satellites[limit - 1].NORAD_CAT_ID.toString(),
             })
           : null,
     };
@@ -140,17 +148,19 @@ fastify.get(
     },
   },
   async (request, reply) => {
-    const [tle] = await db
+    const [omm] = await db
       .select()
-      .from(Tle)
-      .where(eq(Tle.noradCatId, request.params.noradCatId));
+      .from(Omm)
+      .where(eq(Omm.NORAD_CAT_ID, request.params.noradCatId));
 
-    if (!tle) {
-      reply
-        .status(404)
-        .send({ errors: [{ message: "No TLE found for this satellite" }] });
+    if (!omm) {
+      reply.status(404).send({
+        errors: [{ message: "No TLE data found for this satellite" }],
+      });
       return;
     }
+
+    const tle = ommToTle(omm as any);
 
     return [tle.name, tle.line1, tle.line2].join("\n") + "\n";
   },
