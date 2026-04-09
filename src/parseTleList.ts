@@ -2,18 +2,18 @@ import { twoline2satrec } from "satellite.js";
 
 export function* splitTle(raw: string) {
   const lines = raw.split("\n");
-  let state: { objectName?: string; line1?: string } = {};
+  let state: { name?: string; line1?: string } = {};
 
   for (const line of lines) {
     if (line.startsWith("1 ")) {
       state = {
-        objectName: state.objectName,
+        name: state.name,
         line1: line,
       };
     } else if (line.startsWith("2 ")) {
       if (state.line1) {
         yield {
-          objectName: state.objectName,
+          name: state.name,
           line1: state.line1,
           line2: line,
         };
@@ -22,16 +22,16 @@ export function* splitTle(raw: string) {
       state = {};
     } else {
       state = {
-        objectName: line,
+        name: line,
       };
     }
   }
 }
 
 export function parseTleList(raw: string) {
-  return Array.from(splitTle(raw), ({ objectName, line1, line2 }) => ({
+  return Array.from(splitTle(raw), ({ name, line1, line2 }) => ({
     noradCatId: parseInt(twoline2satrec(line1, line2).satnum),
-    name: objectName?.trim(),
+    name: name?.trim(),
     line1,
     line2,
   }));

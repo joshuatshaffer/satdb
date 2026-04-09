@@ -6,8 +6,8 @@ import { splitTle } from "./parseTleList";
 
 const tles: Tle[] = Array.from(
   splitTle(await readFile("./sample-data/tle.txt", { encoding: "utf-8" })),
-  ({ objectName, line1, line2 }) => ({
-    name: objectName?.trim() ?? "",
+  ({ name, line1, line2 }) => ({
+    name: name?.trim() ?? "",
     line1,
     line2,
   }),
