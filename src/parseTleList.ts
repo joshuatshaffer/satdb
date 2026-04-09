@@ -1,4 +1,4 @@
-import { Tle } from "ootk-core";
+import { twoline2satrec } from "satellite.js";
 
 function* splitTle(raw: string) {
   const lines = raw.split("\n");
@@ -30,7 +30,7 @@ function* splitTle(raw: string) {
 
 export function parseTleList(raw: string) {
   return Array.from(splitTle(raw), ({ objectName, line1, line2 }) => ({
-    noradCatId: Tle.satNum(line1 as any),
+    noradCatId: parseInt(twoline2satrec(line1, line2).satnum),
     name: objectName?.trim(),
     line1,
     line2,
