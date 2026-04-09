@@ -2,10 +2,11 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
 import { Static, TSchema, Type } from "typebox";
-import { ErrorResponse } from "./api/schemas";
+import { ErrorResponse } from "./api/schemas/ErrorResponse";
+import { OmmSchema } from "./api/schemas/omm";
 import { batch } from "./batch";
 import { db } from "./db/db";
-import { Omm, OmmSchema } from "./db/schema";
+import { Omm } from "./db/schema";
 import { logger } from "./logger";
 import { ommToTle } from "./ommToTle";
 
