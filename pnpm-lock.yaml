@@ -23,6 +23,9 @@ dependencies:
   fastify:
     specifier: 5.8.4
     version: 5.8.4
+  pino:
+    specifier: 10.3.1
+    version: 10.3.1
   satellite.js:
     specifier: 7.0.0
     version: 7.0.0

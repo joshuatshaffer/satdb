@@ -6,6 +6,7 @@ import { ErrorResponse } from "./api/schemas";
 import { batch } from "./batch";
 import { db } from "./db/db";
 import { Tle } from "./db/schema";
+import { logger } from "./logger";
 import { parseTleList } from "./parseTleList";
 
 const Nullable = <T extends TSchema>(schema: T) =>
@@ -15,7 +16,7 @@ const tleSource =
   "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle";
 
 const fastify = Fastify({
-  logger: true,
+  loggerInstance: logger,
 }).withTypeProvider<TypeBoxTypeProvider>();
 
 const hiddenTag = "hidden";
@@ -64,11 +65,11 @@ fastify.get("/tle/refresh", async (request, reply) => {
 
   const tles = parseTleList(text);
 
-  fastify.log.info(`Downloaded and parsed ${tles.length} satellites`);
+  logger.info(`Downloaded and parsed ${tles.length} satellites`);
 
   await db.delete(Tle);
   for (const values of batch(tles, 400)) {
-    fastify.log.info(`Inserting ${values.length} satellites`);
+    logger.info(`Inserting ${values.length} satellites`);
     await db.insert(Tle).values(values);
   }
 });
@@ -159,7 +160,7 @@ async function start() {
   try {
     await fastify.listen({ port: 3000 });
   } catch (err) {
-    fastify.log.error(err);
+    logger.error(err);
     process.exit(1);
   }
 }
