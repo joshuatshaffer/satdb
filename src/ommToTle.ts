@@ -138,51 +138,55 @@ function asNumber(value: number | string, field: string): number {
 }
 
 export function ommToTle(omm: OMMJsonObjectV3): Tle {
-  const meanMotionDotValue = asNumber(omm.MEAN_MOTION_DOT, "MEAN_MOTION_DOT");
-  const meanMotionDdotValue = asNumber(omm.MEAN_MOTION_DDOT, "MEAN_MOTION_DDOT");
-  const bstarValue = asNumber(omm.BSTAR, "BSTAR");
-  const inclinationValue = asNumber(omm.INCLINATION, "INCLINATION");
-  const raanValue = asNumber(omm.RA_OF_ASC_NODE, "RA_OF_ASC_NODE");
-  const eccentricityValue = asNumber(omm.ECCENTRICITY, "ECCENTRICITY");
-  const argOfPericenterValue = asNumber(
-    omm.ARG_OF_PERICENTER,
-    "ARG_OF_PERICENTER",
-  );
-  const meanAnomalyValue = asNumber(omm.MEAN_ANOMALY, "MEAN_ANOMALY");
-  const meanMotionValue = asNumber(omm.MEAN_MOTION, "MEAN_MOTION");
-
   const satNum = String(omm.NORAD_CAT_ID).padStart(5, " ");
   const classification = (omm.CLASSIFICATION_TYPE ?? "U").slice(0, 1);
   const intlDesignator = formatIntlDesignator(omm.OBJECT_ID ?? "");
   const epoch = formatEpoch(omm.EPOCH);
-  const meanMotionDot = formatFirstDerivative(meanMotionDotValue);
-  const meanMotionDdot = formatTleExponent(meanMotionDdotValue);
-  const bstar = formatTleExponent(bstarValue);
+  const meanMotionDot = formatFirstDerivative(
+    asNumber(omm.MEAN_MOTION_DOT, "MEAN_MOTION_DOT"),
+  );
+  const meanMotionDdot = formatTleExponent(
+    asNumber(omm.MEAN_MOTION_DDOT, "MEAN_MOTION_DDOT"),
+  );
+  const bstar = formatTleExponent(asNumber(omm.BSTAR, "BSTAR"));
   const ephemerisType = String(omm.EPHEMERIS_TYPE ?? 0);
-  const elementSet = String(omm.ELEMENT_SET_NO ?? 0).slice(-4).padStart(4, " ");
+  const elementSet = String(omm.ELEMENT_SET_NO ?? 0)
+    .slice(-4)
+    .padStart(4, " ");
 
   const line1WithoutChecksum =
     `1 ${satNum}${classification} ${intlDesignator} ${epoch}` +
     ` ${meanMotionDot} ${meanMotionDdot} ${bstar} ${ephemerisType} ${elementSet}`;
 
-  const inclination = inclinationValue.toFixed(4).padStart(8, " ");
-  const raan = raanValue.toFixed(4).padStart(8, " ");
-  const eccentricity = String(Math.trunc(eccentricityValue * 1e7)).padStart(7, "0");
-  const argOfPericenter = argOfPericenterValue.toFixed(4).padStart(8, " ");
-  const meanAnomaly = meanAnomalyValue.toFixed(4).padStart(8, " ");
-  const meanMotion = meanMotionValue.toFixed(8).padStart(11, " ");
-  const revAtEpoch = String(omm.REV_AT_EPOCH ?? 0).slice(-5).padStart(5, " ");
+  const inclination = asNumber(omm.INCLINATION, "INCLINATION")
+    .toFixed(4)
+    .padStart(8, " ");
+  const raan = asNumber(omm.RA_OF_ASC_NODE, "RA_OF_ASC_NODE")
+    .toFixed(4)
+    .padStart(8, " ");
+  const eccentricity = String(
+    Math.trunc(asNumber(omm.ECCENTRICITY, "ECCENTRICITY") * 1e7),
+  ).padStart(7, "0");
+  const argOfPericenter = asNumber(omm.ARG_OF_PERICENTER, "ARG_OF_PERICENTER")
+    .toFixed(4)
+    .padStart(8, " ");
+  const meanAnomaly = asNumber(omm.MEAN_ANOMALY, "MEAN_ANOMALY")
+    .toFixed(4)
+    .padStart(8, " ");
+  const meanMotion = asNumber(omm.MEAN_MOTION, "MEAN_MOTION")
+    .toFixed(8)
+    .padStart(11, " ");
+  const revAtEpoch = String(omm.REV_AT_EPOCH ?? 0)
+    .slice(-5)
+    .padStart(5, " ");
 
   const line2WithoutChecksum =
     `2 ${satNum} ${inclination} ${raan} ${eccentricity} ${argOfPericenter}` +
     ` ${meanAnomaly} ${meanMotion}${revAtEpoch}`;
 
-  const line1 = `${line1WithoutChecksum}${checksum(line1WithoutChecksum)}`;
-  const line2 = `${line2WithoutChecksum}${checksum(line2WithoutChecksum)}`;
-
   return {
     name: omm.OBJECT_NAME,
-    line1,
-    line2,
+    line1: `${line1WithoutChecksum}${checksum(line1WithoutChecksum)}`,
+    line2: `${line2WithoutChecksum}${checksum(line2WithoutChecksum)}`,
   };
 }
