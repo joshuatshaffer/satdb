@@ -1,6 +1,6 @@
 import { twoline2satrec } from "satellite.js";
 
-function* splitTle(raw: string) {
+export function* splitTle(raw: string) {
   const lines = raw.split("\n");
   let state: { objectName?: string; line1?: string } = {};
 

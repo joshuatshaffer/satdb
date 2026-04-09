@@ -110,7 +110,7 @@ function asNumber(value: number | string, field: string): number {
 }
 
 export function ommToTle(omm: OMMJsonObjectV3): Tle {
-  const satNum = String(omm.NORAD_CAT_ID).padStart(5, " ");
+  const satNum = String(omm.NORAD_CAT_ID).padStart(5, "0");
   const classification = (omm.CLASSIFICATION_TYPE ?? "U").slice(0, 1);
   const intlDesignator = formatIntlDesignator(omm.OBJECT_ID ?? "");
   const epoch = formatEpoch(omm.EPOCH);
@@ -136,9 +136,11 @@ export function ommToTle(omm: OMMJsonObjectV3): Tle {
   const raan = asNumber(omm.RA_OF_ASC_NODE, "RA_OF_ASC_NODE")
     .toFixed(4)
     .padStart(8, " ");
-  const eccentricity = String(
-    Math.trunc(asNumber(omm.ECCENTRICITY, "ECCENTRICITY") * 1e7),
-  ).padStart(7, "0");
+  const eccentricity = asNumber(omm.ECCENTRICITY, "ECCENTRICITY")
+    // Use an extra digit so that we can truncate instead of round.
+    .toFixed(7 + 1)
+    // Cut off the `0.` and the extra digit.
+    .slice(2, 2 + 7);
   const argOfPericenter = asNumber(omm.ARG_OF_PERICENTER, "ARG_OF_PERICENTER")
     .toFixed(4)
     .padStart(8, " ");
