@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "tsx --watch src/main.ts",
     "test": "vitest",
-    "update-sample-data": "wget 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json' -O sample-data/celestrak-active-omm.json"
+    "update-omm": "wget 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json' -O sample-data/celestrak-active-omm.json",
+    "update-transmitters": "wget 'https://db.satnogs.org/api/transmitters/' -O sample-data/satnogs-transmitters.json"
   },
   "dependencies": {
     "@fastify/swagger": "9.7.0",
