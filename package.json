@@ -2,7 +2,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --watch src/main.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "update-sample-data": "wget 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json' -O sample-data/celestrak-active-omm.json"
   },
   "dependencies": {
     "@fastify/swagger": "9.7.0",

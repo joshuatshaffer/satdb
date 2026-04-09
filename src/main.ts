@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { and, count, eq, gt } from "drizzle-orm";
 import Fastify from "fastify";
+import { readFile } from "node:fs/promises";
 import { Static, TSchema, Type } from "typebox";
 import { ErrorResponse } from "./api/schemas/ErrorResponse";
 import { OmmSchema } from "./api/schemas/omm";
@@ -67,9 +68,23 @@ fastify.get(
   },
 );
 
-fastify.get("/tle/refresh", async (request, reply) => {
+const useSampleData = true;
+
+async function fetchCelestrakOmmJson() {
+  if (useSampleData) {
+    return JSON.parse(
+      await readFile("./sample-data/celestrak-active-omm.json", {
+        encoding: "utf-8",
+      }),
+    );
+  }
+
   const response = await fetch(tleSource);
-  const omms: Static<typeof OmmSchema>[] = await response.json();
+  return await response.json();
+}
+
+fastify.get("/tle/refresh", async (request, reply) => {
+  const omms: Static<typeof OmmSchema>[] = await fetchCelestrakOmmJson();
 
   logger.info(`Downloaded and parsed ${omms.length} satellites`);
 
